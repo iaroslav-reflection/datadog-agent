@@ -217,6 +217,10 @@ _DD_PROCMGRD_ISOLATED_INTEGRATION_TEST_NAMES = dd_procmgrd_isolated_integration_
 dd_procmgrd_lib_test(
     name = "dd-procmgrd_test",
     args = dd_procmgrd_skip_args_for_isolated(_DD_PROCMGRD_ISOLATED_INTEGRATION_TESTS),
+    compile_data = [
+        "//pkg/fleet/installer/packages/user/windows:user.go",
+        "//tools/windows/DatadogAgentInstaller/CustomActions:ConfigureUserCustomActions.cs",
+    ],
     env = _DD_PROCMGRD_TEST_ENV,
 )
 
