@@ -639,6 +639,10 @@ struct capabilities_event_t {
     struct go_labels_context_t go_labels;
     struct cgroup_context_t cgroup;
     struct capabilities_usage_t caps_usage;
+    // cookie of the proc_cache entry the usage was aggregated for: the event may be
+    // emitted while the process is already running a different program (exec flush),
+    // in which case pid alone resolves to the wrong executable in userspace.
+    u64 cookie;
 };
 
 struct prctl_event_t {

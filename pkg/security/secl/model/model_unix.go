@@ -1209,6 +1209,11 @@ type SocketEvent struct {
 type CapabilitiesEvent struct {
 	Attempted uint64 `field:"attempted,handler:ResolveCapabilitiesAttempted"` // SECLDoc[attempted] Definition:`Bitmask of the capabilities that the process attempted to use since it started running` Constants:`Kernel Capability constants`
 	Used      uint64 `field:"used,handler:ResolveCapabilitiesUsed"`           // SECLDoc[used] Definition:`Bitmask of the capabilities that the process successfully used since it started running` Constants:`Kernel Capability constants`
+
+	// Cookie identifies the executable the usage was aggregated for, it is matched
+	// against the resolved process to reject events the resolver attributed to a
+	// program that replaced the one which actually used the capabilities.
+	Cookie uint64 `field:"-"`
 }
 
 // PrCtlEvent represents a prctl event

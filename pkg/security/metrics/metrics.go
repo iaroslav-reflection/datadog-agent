@@ -562,6 +562,13 @@ var (
 	// Tags: -
 	MetricNameTruncated = newRuntimeMetric(".prctl.name_truncated")
 
+	// Capabilities monitoring metrics
+
+	// MetricCapabilitiesCookieMismatch is the name of the metric used to report capabilities usage
+	// events dropped because they couldn't be attributed to the executable that used the capabilities
+	// Tags: -
+	MetricCapabilitiesCookieMismatch = newRuntimeMetric(".capabilities.cookie_mismatch")
+
 	// Security Profile V2 metrics
 
 	// Event Processing metrics

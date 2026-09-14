@@ -201,6 +201,10 @@ type EBPFProbe struct {
 	// PrCtl and name truncation
 	MetricNameTruncated *atomic.Uint64
 
+	// capabilities usage events dropped because they could not be attributed to the
+	// executable that actually used the capabilities
+	CapabilitiesCookieMismatch *atomic.Uint64
+
 	// per-event scratch state — only safe because handleEvent is single-goroutine.
 	// onNewPCE / onCgroupUpdate are stored as function values rather than declared as
 	// methods because a `p.method` expression allocates a fresh method value on every
@@ -1204,6 +1208,11 @@ func (p *EBPFProbe) SendStats() error {
 		return err
 	}
 
+	valueCookieMismatch := p.CapabilitiesCookieMismatch.Swap(0)
+	if err := p.statsdClient.Count(metrics.MetricCapabilitiesCookieMismatch, int64(valueCookieMismatch), []string{}, 1.0); err != nil {
+		return err
+	}
+
 	if err := p.eventStream.SendStats(); err != nil {
 		return err
 	}
@@ -1980,6 +1989,16 @@ func (p *EBPFProbe) handleRegularEvent(event *model.Event, offset int, dataLen u
 		}
 		if event.CapabilitiesUsage.Attempted == 0 && event.CapabilitiesUsage.Used == 0 {
 			seclog.Debugf("capabilities usage event with no attempted or used capabilities, skipping")
+			return false
+		}
+		// Usage is aggregated per executable while the event is emitted asynchronously
+		// (periodic tick, exec flush, exit flush). By the time it reaches userspace the
+		// pid may already be running a different program, and both the kernel maps and
+		// procfs describe that new program, so a cache miss would silently attribute the
+		// usage to it. The cookie is the only identity that survives, drop on mismatch.
+		if event.ProcessCacheEntry.Cookie != event.CapabilitiesUsage.Cookie {
+			p.CapabilitiesCookieMismatch.Add(1)
+			seclog.Debugf("capabilities usage event for pid %d resolved to a different executable (cookie %d != %d), skipping", event.PIDContext.Pid, event.ProcessCacheEntry.Cookie, event.CapabilitiesUsage.Cookie)
 			return false
 		}
 		// is this thread-safe?
@@ -3475,6 +3494,8 @@ func NewEBPFProbe(probe *Probe, config *config.Config, hostname string, opts Opt
 		activeRemediations:   make(map[string]*Remediation),
 		pid:                  utils.Getpid(),
 		dropActionRuleIDs:    make(map[uint32]string),
+
+		CapabilitiesCookieMismatch: atomic.NewUint64(0),
 	}
 
 	p.onNewPCE = func(pce *model.ProcessCacheEntry, err error) {
