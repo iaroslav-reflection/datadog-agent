@@ -98,6 +98,7 @@ cc_import(
 # Use in go_library cdeps instead of //rtloader:rtloader to avoid static linking.
 cc_library(
     name = "rtloader_dynamic",
+    data = [":three_pkg"],
     visibility = ["//visibility:public"],
     deps = [
         ":_rtloader_shared",
