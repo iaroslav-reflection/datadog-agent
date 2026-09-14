@@ -22,7 +22,6 @@ package(default_visibility = ["//packages:__subpackages__"])
 pkg_filegroup(
     name = "all_files",
     srcs = [
-        # TODO: dependency "python3"
         # TODO: dependencies:all_files belongs here, but that adding it will essentially
         # mean all builds build dependencies. That would break the repackage workflow, so
         # we'll do that in April.
@@ -31,7 +30,6 @@ pkg_filegroup(
         ":example_config",
         "//cmd/agent/dist:all_files",
         "//cmd/agent/dist:all_python_files",
-        "//rtloader:all_files",
         ":dda_built_agent_binary",
 
         # TODO: sysprobe - windows
@@ -66,8 +64,10 @@ pkg_filegroup(
     }) + select({
         "@platforms//os:linux": [
             "//cmd/loader:trace_loader_all_files",
+            "//packages/agent/dependencies:collected_libs",
         ],
         "@platforms//os:macos": [
+            "//rtloader:all_files",
             "//cmd/loader:trace_loader_all_files",
             "//packages/macos/app:all_files",
             # TODO: systray
@@ -76,6 +76,7 @@ pkg_filegroup(
             "//packages/windows:all_files",
             "//pkg/privateactionrunner/par-control:all_files",
             "//pkg/procmgr/rust:all_files_windows",
+            "//rtloader:all_files",
         ],
         "//conditions:default": [],
     }),
