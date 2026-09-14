@@ -1,7 +1,6 @@
-//! Backend scan engines: run a sub task's query and return its column data.
+//! Backend scan engines: run a sub task's query and return its rows.
 
 use anyhow::{Context, Result};
-use serde_json::Value;
 
 use crate::config::SubTask;
 
@@ -18,18 +17,26 @@ pub struct ScannedColumn {
     pub data_type: String,
 }
 
-/// The result of running a sub task's query: the `{ column: [values] }` map fed
-/// to the scanner, plus metadata describing what was scanned.
+/// One query row. Values are in `scanned_columns` order; `None` is SQL NULL.
+pub type ScanRow = Vec<Option<String>>;
+
+/// One row's cells, visited by index without collecting extra copies.
+pub trait ScanCells {
+    fn cell(&self, index: usize) -> Option<&str>;
+}
+
+impl ScanCells for ScanRow {
+    fn cell(&self, index: usize) -> Option<&str> {
+        self.get(index).and_then(|value| value.as_deref())
+    }
+}
+
+/// The result of running a sub task's query: column metadata plus rows.
+/// Empty results still include `scanned_columns` (from the prepared statement).
 #[derive(Debug, Default, Clone)]
 pub struct ScanData {
-    /// Column-oriented values consumed by the scanner.
-    // TODO(dsec-173): return an `Event` (dd-sensitive-data-scanner) per backend
-    // instead of a `Value`, to avoid the intermediate JSON map and its copies.
-    pub columns: Value,
-    /// The scanned columns (name + source data type), in query order.
     pub scanned_columns: Vec<ScannedColumn>,
-    /// Number of rows returned by the query and scanned.
-    pub scanned_row_count: i64,
+    pub rows: Vec<ScanRow>,
 }
 
 /// A data-source engine that runs a sub task's query and returns the scanned
@@ -37,7 +44,7 @@ pub struct ScanData {
 pub trait ScanEngine: Sync {
     /// Engine name, matched against the sub task platform.
     fn name(&self) -> &'static str;
-    /// Runs the sub task's query and returns its columns and scan metadata.
+    /// Runs the sub task's query and returns its columns and rows.
     fn fetch_data(&self, sub_task: &SubTask) -> Result<ScanData>;
 }
 
