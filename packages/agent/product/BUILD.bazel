@@ -67,7 +67,7 @@ pkg_filegroup(
             "//packages/agent/dependencies:collected_libs",
         ],
         "@platforms//os:macos": [
-            "//rtloader:all_files",
+            "//packages/agent/dependencies:collected_libs",
             "//cmd/loader:trace_loader_all_files",
             "//packages/macos/app:all_files",
             # TODO: systray
